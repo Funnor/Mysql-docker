@@ -1,0 +1,50 @@
+version: '2'
+
+services:
+    master:
+        container_name: mysql_master
+        environment:
+           - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        image: mysql:${TAG}
+        restart: always
+        env_file:
+            - env/base.env
+        volumes:
+            - "./master/db:/var/lib/mysql"
+            - "./master/etc/my.cnf:/etc/my.cnf"
+            - "./master/init/:/docker-entrypoint-initdb.d/"
+        ports:
+            - "3306:3306"
+        expose:
+            - "3306"
+        command: [
+            "--log-bin=mysql-master-bin",
+            "--server-id=${MASTER_SERVER_ID}",
+            "--character-set-server=utf8mb4",
+            "--collation-server=utf8mb4_unicode_ci",
+            "--innodb_flush_log_at_trx_commit=1",
+            "--sync_binlog=1"
+            ]
+
+    slave:
+        container_name: mysql_slave
+        environment:
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        image: mysql:${TAG}
+        restart: always
+        env_file:
+            - env/base.env
+        volumes:
+            - "./slave/db:/var/lib/mysql"
+            - "./slave/etc/my.cnf:/etc/my.cnf"
+            - "./slave/init/:/docker-entrypoint-initdb.d/"
+        ports:
+            - "3307:3306"
+        depends_on:
+            - master
+        command: [
+            "--server-id=${SLAVE_1_SERVER_ID}",
+            "--character-set-server=utf8mb4",
+            "--collation-server=utf8mb4_unicode_ci",
+            "--relay-log=mysql-node-relay-bin"
+            ]
